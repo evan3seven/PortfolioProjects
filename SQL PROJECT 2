@@ -1,0 +1,168 @@
+/* DATA CLEANING SQL QUERIES of the Nashville Housing Dataset*/
+-- This is a Case study focus on data cleaning using SQL
+-- The dataset is available on https://www.kaggle.com/tmthyjames/nashville-housing-data
+
+
+SELECT *
+FROM nashville_housing_data;
+
+
+----------------------------------------------------------
+--Standardize Date format
+
+
+ALTER TABLE nashville_housing_data
+ALTER COLUMN sale_date TYPE date;
+
+SELECT sale_date
+FROM nashville_housing_data;
+
+
+-- Populate Property address data
+
+
+SELECT *
+FROM nashville_housing_data
+WHERE property_address IS NULL
+ORDER BY parcel_id;
+
+SELECT a.parcel_id, a.property_address, b.parcel_id, b.property_address, COALESCE(a.property_address, b.property_address)
+FROM nashville_housing_data a
+JOIN nashville_housing_data b
+    ON a.parcel_id = b.parcel_id
+    AND a.unique_id <> b.unique_id
+    WHERE a.property_address IS null;
+
+UPDATE nashville_housing_data a
+    SET property_address = b.property_address
+FROM nashville_housing_data b
+WHERE a.parcel_id = b.parcel_id
+    AND a.unique_id <> b.unique_id
+    AND a.property_address is null;
+
+
+----------------------------------------------------------
+--Breaking out addresses into individual columns 
+--(Address, City, State)
+
+
+SELECT *
+FROM nashville_housing_data;
+
+SELECT 
+    SUBSTRING(property_address, 1, STRPOS(property_address, ',')-1) AS address,
+    SUBSTRING(property_address, STRPOS(property_address, ',')+1, LENGTH(property_address)) AS address
+FROM nashville_housing_data;
+
+ALTER TABLE nashville_housing_data
+ADD property_split_address VARCHAR(150);
+
+UPDATE nashville_housing_data
+SET property_split_address = SUBSTRING(property_address, 1, STRPOS(property_address, ',')-1);
+
+ALTER TABLE nashville_housing_data
+ADD property_split_city VARCHAR(150);
+
+UPDATE nashville_housing_data
+SET property_split_city = SUBSTRING(property_address, STRPOS(property_address, ',')+1, LENGTH(property_address));
+
+SELECT *
+FROM nashville_housing_data;
+
+SELECT 
+    SPLIT_PART(owner_address,',',1),
+    SPLIT_PART(owner_address,',',2),
+    SPLIT_PART(owner_address,',',3)
+FROM nashville_housing_data;
+
+ALTER TABLE nashville_housing_data
+ADD owner_split_address VARCHAR(150);
+
+UPDATE nashville_housing_data
+SET owner_split_address = SPLIT_PART(owner_address,',',1);
+
+ALTER TABLE nashville_housing_data
+ADD owner_split_city VARCHAR(150);
+
+UPDATE nashville_housing_data
+SET owner_split_city = SPLIT_PART(owner_address,',',2);
+
+ALTER TABLE nashville_housing_data
+ADD owner_split_state VARCHAR(150);
+
+UPDATE nashville_housing_data
+SET owner_split_state = SPLIT_PART(owner_address,',',3);
+
+
+----------------------------------------------------------
+-- Change true and false to Yes and No in "Sold as Vacant" field
+
+
+SELECT DISTINCT(sold_as_vacancy), COUNT(sold_as_vacancy)
+FROM nashville_housing_data
+GROUP BY sold_as_vacancy
+ORDER BY count;
+
+SELECT *,
+CASE WHEN sold_as_vacancy = 'true' THEN 'yes'
+     WHEN sold_as_vacancy = 'false' THEN 'no'
+     ELSE sold_as_vacancy
+    END
+FROM nashville_housing_data;
+
+UPDATE nashville_housing_data
+SET sold_as_vacancy = CASE WHEN sold_as_vacancy = 'true' THEN 'Yes'
+    WHEN sold_as_vacancy = 'false' THEN 'No'
+    ELSE sold_as_vacancy
+    END;
+
+
+----------------------------------------------------------
+-- REMOVE DUPLICATES
+
+-- Finding duplicates
+
+WITH RowNumCTE AS(
+SELECT *,
+    ROW_NUMBER() OVER(
+    PARTITION BY parcel_id,
+    property_address,
+    sales_price,
+    sale_date,
+    legal_reference
+ORDER BY
+    unique_id) row_num
+FROM nashville_housing_data
+)
+SELECT *
+FROM RowNumCTE
+WHERE row_num > 1
+
+-- deleting duplicates
+
+WITH RowNumCTE AS(
+SELECT *,
+    ROW_NUMBER() OVER(
+    PARTITION BY parcel_id,
+    property_address,
+    sales_price,
+    sale_date,
+    legal_reference
+ORDER BY
+    unique_id) row_num
+FROM nashville_housing_data
+)
+DELETE
+FROM nashville_housing_data NH
+USING RowNumCTE RN
+    WHERE NH.unique_id = RN.unique_id
+    AND row_num > 1;
+----------------------------------------------------------
+-- DELETE UNUSED COLUMNS
+
+
+ALTER TABLE nashville_housing_data
+DROP COLUMN owner_address, 
+DROP COLUMN tax_district, 
+DROP COLUMN property_address,
+DROP COLUMN sale_date
