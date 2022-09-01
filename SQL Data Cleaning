@@ -1,4 +1,5 @@
 /* DATA CLEANING SQL QUERIES of the Nashville Housing Dataset*/
+
 -- This is a Case study focus on data cleaning using SQL
 -- The dataset is available on https://www.kaggle.com/tmthyjames/nashville-housing-data
 
@@ -10,15 +11,14 @@ FROM nashville_housing_data;
 ----------------------------------------------------------
 --Standardize Date format
 
-
 ALTER TABLE nashville_housing_data
 ALTER COLUMN sale_date TYPE date;
 
 SELECT sale_date
 FROM nashville_housing_data;
 
-
--- Populate Property address data
+----------------------------------------------------------
+-- Populate property address data
 
 
 SELECT *
@@ -95,7 +95,7 @@ SET owner_split_state = SPLIT_PART(owner_address,',',3);
 
 
 ----------------------------------------------------------
--- Change true and false to Yes and No in "Sold as Vacant" field
+-- Change true and false to Yes and No in "Sold as Vacant" column
 
 
 SELECT DISTINCT(sold_as_vacancy), COUNT(sold_as_vacancy)
@@ -138,6 +138,7 @@ SELECT *
 FROM RowNumCTE
 WHERE row_num > 1
 
+----------------------------------------------------------
 -- deleting duplicates
 
 WITH RowNumCTE AS(
