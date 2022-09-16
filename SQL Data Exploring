@@ -1,3 +1,7 @@
+/*
+   Covid Data Exploration  
+*/
+
 -- Select data im going to be using
 
 SELECT
@@ -180,7 +184,6 @@ FROM
     percent_population_vaccinated
 -----------------------------------------------------------------------
 
-    
 -- Creating view to store for later visualizations
 
 CREATE VIEW
